@@ -8,7 +8,6 @@
 
 #include <Arduino.h>
 #include <BlynkSimpleEsp8266.h>
-#include <EEPROM.h>
 #include <ESP8266WiFi.h>
 #include <Ticker.h>
 
