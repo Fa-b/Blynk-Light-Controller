@@ -23,9 +23,10 @@
 //#define ERROR_TERMINAL    V100
 #define ERROR_BRIDGE        V5
 
-#define MAXCURRENT_mA 1000
-#define MAXDISPLAYCURRENT_mA 1500
-#define MAXPOWERCORRECTION_PERCENT 100 * MAXDISPLAYCURRENT_mA / MAXCURRENT_mA
+// ADC hardware configuration
+#define MAX_MEASURE_HARDWARE_CURRENT_A  ((double)1.500)
+#define POWER_PERCENT                   ((double)100 / MAX_CURRENT_DESIRED_A)
+#define BRIGHTNESS_MULTIPLIER           ((double)MAX_CURRENT_DESIRED_A / FULL_ON_HARWARE_CURRENT_A * (2.5 / 3.4))  // PWM -> DAC output limitation (0.4 .. 2.5 VDC for AL8805)
 
 // Don't touch from here:
 typedef struct {

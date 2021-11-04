@@ -5,6 +5,7 @@
 #define OTA_updater_h
 
 int versionCompare(String, String);
+void loadFirmware(String);
 void checkForUpdates(void);
 
 #endif /* OTA_updater_h */

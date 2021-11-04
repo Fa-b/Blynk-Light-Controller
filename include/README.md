@@ -1,6 +1,15 @@
 modify `privates_template.h` according to requirements and rename to `privates.h`
 
 for `typedefs.h` to work as intended, Blynk libs `WidgetTerminal.h` has to be modified to make the `private` properties `protected` instead.
+
+Additionally `WidgetTerminal.h` the `mOutBuf` property should be adjusted to use a buffer size of 128 instead of the 64 bytes default.
+Otherwise messages that excceed 63 characters might appear sliced across terminal output:
+```js
+protected:
+    uint8_t mOutBuf[128];
+    uint8_t mOutQty;
+};
+```
 You could just as well copy over the whole class and reimplement instead of inheriting.. this is a matter of laziness.
 
 In order for `firmware.bin` output to contain device information, the linker file has to be manipulated.
@@ -18,7 +27,9 @@ __attribute__((section (".versionSection")))
 extern DEVICE_INFO_T device_info;
 ```
 
-The linker file is located in `.pio/build/d1_mini/ld/local.eagle.app.v6.common.ld` (for PlatformIO). And the place where I put it is here:
+The linker file is located in `.pio/build/d1_mini/ld/local.eagle.app.v6.common.ld` (for PlatformIO).
+It is generated via the global header located in `%HOMEPATH%\.platformio\packages\framework-arduinoespressif8266\tools\sdk\ld\eagle.app.v6.common.ld.h`.
+And the place where I put it is here:
 ```cpp
     ...
     /* Stuff the CRC in well known symbols at a well known location */
@@ -33,7 +44,7 @@ The linker file is located in `.pio/build/d1_mini/ld/local.eagle.app.v6.common.l
     *.cpp.o(EXCLUDE_FILE (umm_malloc.cpp.o) .literal*, EXCLUDE_FILE (umm_malloc.cpp.o) .text*)
     ...
 ```
-Obviously `d1_mini` will depend on your selected env.
+Obviously `d1_mini` will depend on your selected env. If you decide to only locally add the section, you will have to redo the change whenever the build process decides to previously clean (or obviously when you manually clean before compilation). Adding it to the Arduino Framework's header file will automagically add that section for you.
 
 `BlynkSimpleEsp8266.h` initializes globals which is bad practice and will lead to errors in multi-file projects. Hence initialization is carried to main.cpp here.
 The last few lines in that lib header should read similar to the following and you shall be fine:

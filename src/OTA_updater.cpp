@@ -49,6 +49,55 @@ int versionCompare(String v1, String v2) {
     return 0;
 }
 
+void loadFirmware(String ver) {
+    WiFiClient client;
+    HTTPClient http;
+
+    INFO_PRINTF("Downloading Firmware version: %s\n", ver.c_str());
+
+    // Prepare path
+    char path[64];
+    snprintf(path, sizeof(path), "/%s/%s", auth, ver.c_str());
+    http.begin(client, hostname, 8070, path);  // HTTP
+
+    int statusCode = http.GET();
+    if (statusCode != HTTP_CODE_OK) {
+        http.end();
+        return;
+    }
+
+    long length = http.getSize();
+    if (length == HTTPC_ERROR_CONNECTION_FAILED) {
+        http.end();
+        WARNING_PRINT("Server didn't provide Content-length header. Can't continue with update.\n");
+        return;
+    }
+    DEBUG_PRINTF("Server returned update file size of %lu bytes\n", length);
+
+    if (!InternalStorage.open(length)) {
+        http.end();
+        WARNING_PRINTLN("There is not enough space to store the update. Can't continue with update.\n");
+        return;
+    }
+
+    byte b;
+    while (length > 0) {
+        if (!http.getStream().readBytes(&b, 1))  // reading a byte with timeout
+            break;
+        InternalStorage.write(b);
+        length--;
+    }
+    InternalStorage.close();
+    http.end();
+    if (length > 0) {
+        WARNING_PRINTF("Timeout downloading update file after %lu bytes. Can't continue with update.\n", length);
+        return;
+    }
+
+    DEBUG_PRINT("Sketch update apply and reset.\n");
+    InternalStorage.apply();  // this doesn't return
+}
+
 void checkForUpdates() {
     WiFiClient client;
     HTTPClient http;
@@ -69,49 +118,12 @@ void checkForUpdates() {
         if (versionCompare(newFWVersion, version) > 0) {
             INFO_PRINTF("Firmware Update Available %s -> %s\n", version, newFWVersion.c_str());
 
-            // TODO: make separate method (can also be used for downgrade or force update)
-            snprintf(path, sizeof(path), "/%s/%s", auth, newFWVersion.c_str());
-            http.setURL(path);
-            int statusCode = http.GET();
-            if (statusCode != HTTP_CODE_OK) {
-                http.end();
-                return;
-            }
-
-            long length = http.getSize();
-            if (length == HTTPC_ERROR_CONNECTION_FAILED) {
-                http.end();
-                WARNING_PRINT("Server didn't provide Content-length header. Can't continue with update.\n");
-                return;
-            }
-            DEBUG_PRINTF("Server returned update file size of %lu bytes\n", length);
-
-            if (!InternalStorage.open(length)) {
-                http.end();
-                WARNING_PRINTLN("There is not enough space to store the update. Can't continue with update.\n");
-                return;
-            }
-
-            byte b;
-            while (length > 0) {
-                if (!http.getStream().readBytes(&b, 1))  // reading a byte with timeout
-                    break;
-                InternalStorage.write(b);
-                length--;
-            }
-            InternalStorage.close();
-            http.end();
-            if (length > 0) {
-                WARNING_PRINTF("Timeout downloading update file after %lu bytes. Can't continue with update.\n", length);
-                return;
-            }
-
-            DEBUG_PRINT("Sketch update apply and reset.\n");
-            InternalStorage.apply();  // this doesn't return
+            loadFirmware(newFWVersion);
         } else {
             INFO_PRINTF("Already on latest version: %s\n", version);
         }
     } else {
         WARNING_PRINTF("Firmware version check failed, got HTTP response code %d\n", statusCode);
+        http.end();
     }
 }
