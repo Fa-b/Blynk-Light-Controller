@@ -5,14 +5,16 @@
 enum Commands { 
     ping,
     update,
-    ver
+    ver,
+    reset
 };
 
 CommandParser::CommandParser() {
     cmd_map = {
         {".ping", ping},
         {".update", update},
-        {".version", ver}
+        {".version", ver},
+        {".reset", reset}
     };
 }
 
@@ -52,13 +54,16 @@ BLYNK_WRITE(DEBUG_BRIDGE) {
                 } else if(args[0].compareTo("list") == 0) {
                     response = String("version list not ready yet :-/");
                 } else if(args[0].compareTo("install") == 0 && args.size() > 1) {
-                    loadFirmware(args[1]);
+                    loadFirmware(String(args[1]));
                 } else {
                     response = String("Error: Unknown subcommand \'" + args[0] + "\'!");
                 }
             } else {
                 response = String("Error: Not enough arguments!");
             }
+            break;
+        case reset:
+            ESP.restart();
             break;
         default:
             response = String("Error: Command \'" + cmd + "\' not found!");

@@ -15,15 +15,22 @@
 #include "privates.h"
 #include "typedefs.h"
 
-int versionCompare(String v1, String v2) {
+// compare versions strings of the form "1.2.3a"
+int versionStringCompare(String v1, String v2) {
     int vnum1 = 0, vnum2 = 0;
+    int vrev1 = 0, vrev2 = 0;
 
     for (unsigned int i = 0, j = 0; (i < v1.length() || j < v2.length());) {
         while (i < v1.length() && v1[i] != '.') {
             vnum1 = vnum1 * 10 + (v1[i] - '0');
             i++;
-            if(v1[i] >= 'A') {
-                i--;
+            if(v1[i] >= 'A' && v1[i] <= 'Z') {
+                vrev1 = vrev1 * 10 + (v1[i] - 'A' + 1);
+                i++;
+                break;
+            } else if(v1[i] >= 'a' && v1[i] <= 'z') {
+                vrev1 = vrev1 * 10 + (v1[i] - 'a' + 1);
+                i++;
                 break;
             }
         }
@@ -31,8 +38,13 @@ int versionCompare(String v1, String v2) {
         while (j < v2.length() && v2[j] != '.') {
             vnum2 = vnum2 * 10 + (v2[j] - '0');
             j++;
-            if(v1[j] >= 'A') {
-                j--;
+            if(v2[j] >= 'A' && v2[j] <= 'Z') {
+                vrev2 = vrev2 * 10 + (v2[j] - 'A' + 1);
+                j++;
+                break;
+            } else if(v2[j] >= 'a' && v2[j] <= 'z') {
+                vrev2 = vrev2 * 10 + (v2[j] - 'a' + 1);
+                j++;
                 break;
             }
         }
@@ -40,6 +52,10 @@ int versionCompare(String v1, String v2) {
         if (vnum1 > vnum2)
             return 1;
         if (vnum2 > vnum1)
+            return -1;
+        if (vrev1 > vrev2)
+            return 1;
+        if (vrev2 > vrev1)
             return -1;
 
         vnum1 = vnum2 = 0;
@@ -115,7 +131,7 @@ void checkForUpdates() {
         DEBUG_PRINTF("Current firmware version: %s\n", version);
         DEBUG_PRINTF("Available firmware version: %s\n", newFWVersion.c_str());
 
-        if (versionCompare(newFWVersion, version) > 0) {
+        if (versionStringCompare(newFWVersion, version) > 0) {
             INFO_PRINTF("Firmware Update Available %s -> %s\n", version, newFWVersion.c_str());
 
             loadFirmware(newFWVersion);

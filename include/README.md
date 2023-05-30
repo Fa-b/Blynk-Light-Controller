@@ -46,6 +46,11 @@ And the place where I put it is here:
 ```
 Obviously `d1_mini` will depend on your selected env. If you decide to only locally add the section, you will have to redo the change whenever the build process decides to previously clean (or obviously when you manually clean before compilation). Adding it to the Arduino Framework's header file will automagically add that section for you.
 
+# Outdated:
+```
+The following is no longer necessary as the updated dependency is no longer initializing these objects globally.
+```
+
 `BlynkSimpleEsp8266.h` initializes globals which is bad practice and will lead to errors in multi-file projects. Hence initialization is carried to main.cpp here.
 The last few lines in that lib header should read similar to the following and you shall be fine:
 ```cpp

@@ -34,9 +34,9 @@ char pass[] = WIFI_PASS;
 char remoteAuth[] = REMOTE_AUTH;
 
 // extern in typedefs.h
-#ifdef ERROR_TERMINAL
+#ifdef DEBUG_TERMINAL
 WidgetTerminal terminal(DEBUG_TERMINAL);
-#elif ERROR_BRIDGE
+#elif DEBUG_BRIDGE
 BridgeTerminal bridge(DEBUG_BRIDGE);
 #endif
 
@@ -78,8 +78,19 @@ void setup() {
     analogWriteFreq(PWM_FREQUENCY);
     analogWriteRange(PWM_RESOLUTION);
 
+    // Problematic since there may be multiple devices with the same name
+    // Add serial number to hostname
+    WiFi.hostname(String(name) + String("_") + String(ESP.getChipId()));
+
+#ifdef DEBUG_SERIAL
     // Debug console
-    //Serial.begin(115200);
+    Serial.begin(115200);
+    while (!Serial) {
+        ;  // wait for serial port to connect. Needed for native USB port only
+    }
+    DEBUG_PRINT("\nSerial debug mode is on.\n\n");
+#endif
+
     Blynk.begin(auth, ssid, pass, HOSTNAME, 8080);
 
     Blynk.syncVirtual(V3);
@@ -91,7 +102,9 @@ BLYNK_CONNECTED() {
     self_ip = _blynkWifiClient.localIP().toString();
     self.setAuthToken(AUTH_TOKEN);
     self.virtualWrite(SELF_BRIDGE, self_ip);
+#ifdef DEBUG_BRIDGE
     bridge.setAuthToken(remoteAuth);
+#endif
     INFO_PRINT("Just connected.\n");
     DEBUG_PRINT("Debug mode is on which is why I will spam here :-)\n\n");
 
@@ -140,7 +153,7 @@ BLYNK_WRITE(SELF_BRIDGE) {
 BLYNK_WRITE(V0) {
     // will be reset when current ADC sample interval expires
     digitalWrite(LED_BUILTIN, LOW);
-    brightness = (int)(BRIGHTNESS_MULTIPLIER * param.asInt());
+    brightness = (int)(BRIGHTNESS_OFFSET + BRIGHTNESS_MULTIPLIER * param.asInt());
     setLED(state);
 }
 
